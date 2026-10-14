@@ -467,3 +467,53 @@ h2 em{background:linear-gradient(90deg,#ff4fd8,#ffb3f0,#b44cff,#ff4fd8);backgrou
 /* click debris */
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
 @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none}.btn.pri::before{display:none}}
+
+/* =====================================================================
+   v3 — every command animated
+   ===================================================================== */
+.s-dirt{background-color:#4c3522;--tex-s:var(--tex-dirt)}
+.cmd-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:24px;align-items:start}
+.cmd-wrap .console-body{max-height:min(68vh,720px)}
+.crow{cursor:pointer;transition:background .2s}
+.crow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.crow code{display:inline-flex;align-items:center;gap:8px}
+.crow .play{width:22px;height:22px;flex-shrink:0;border-radius:50%;background:rgba(255,79,216,.12);position:relative;transition:background .25s,transform .3s cubic-bezier(.3,1.6,.5,1)}
+.crow .play::after{content:"";position:absolute;left:8px;top:6px;border-left:8px solid var(--accent);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.crow:hover .play{background:rgba(255,79,216,.28);transform:scale(1.12)}
+.crow.on{background:linear-gradient(90deg,rgba(255,79,216,.18),rgba(255,79,216,.03))}
+.crow.on .play{background:var(--accent);animation:ppulse 1.4s ease-in-out infinite}
+.crow.on .play::after{border-left-color:#fff}
+@keyframes ppulse{50%{box-shadow:0 0 0 6px rgba(255,79,216,.18)}}
+@media (max-width:640px){.crow{grid-template-columns:minmax(0,1fr) 44px}}
+
+.screen{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:22px;background:radial-gradient(120% 80% at 50% 0%,#141a38,#0a0b10 70%);border:1px solid var(--line-2);box-shadow:0 40px 80px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,79,216,.08) inset}
+.screen-top{display:flex;align-items:center;gap:10px;min-width:0}
+.screen-top code{flex:1;min-width:0;background:none;padding:0;font-size:15px;font-weight:700;color:var(--accent-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live{width:10px;height:10px;border-radius:50%;background:#ff4a4a;box-shadow:0 0 10px #ff4a4a;animation:live 1.2s ease-in-out infinite;flex-shrink:0}
+@keyframes live{50%{opacity:.3}}
+.screen-stage{position:relative;aspect-ratio:1/.92;width:100%;border-radius:16px;overflow:hidden;background:radial-gradient(90% 70% at 50% 35%,rgba(255,79,216,.08),transparent 70%),linear-gradient(180deg,#0b1230,#0c0d14)}
+.screen-stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.sim-chat{left:8px;bottom:8px;font-size:12.5px}
+.sim-chat .dim{color:#9a968b}
+.sim-chat .warn{color:var(--warn)}
+.screen-desc{font-size:15px;color:#cfcabe;min-height:3em}
+.screen-nav{display:flex;align-items:center;gap:8px}
+.screen-nav span{flex:1;text-align:center;font:600 13px var(--f-mono);color:var(--dim)}
+.sbtn{appearance:none;border:1px solid var(--line-2);background:rgba(255,255,255,.05);color:var(--fg);font:600 14px var(--f-body);height:40px;min-width:40px;padding:0 14px;border-radius:999px;cursor:pointer;transition:background .25s,border-color .25s,transform .3s cubic-bezier(.3,1.6,.5,1)}
+.sbtn:hover{background:rgba(255,79,216,.18);border-color:rgba(255,79,216,.6);transform:translateY(-2px)}
+.sbtn:active{transform:scale(.94)}
+#scrReplay{background:linear-gradient(110deg,#ff4fd8,#b44cff);border-color:transparent;color:#fff}
+#scrClose{display:none;padding:0;width:40px}
+.scr-back{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0}}
+
+@media (max-width:900px){
+  .cmd-wrap{grid-template-columns:1fr}
+  .screen{position:fixed;z-index:80;left:0;right:0;bottom:0;top:auto;border-radius:24px 24px 0 0;padding:14px max(14px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));max-height:92svh;overflow:auto;transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.9,.25,1);visibility:hidden}
+  .screen.open{transform:none;visibility:visible}
+  .screen::before{content:"";align-self:center;width:44px;height:5px;border-radius:3px;background:var(--line-2)}
+  #scrClose{display:inline-block}
+  .screen-stage{aspect-ratio:1/.95}
+  html.sheet-open{overflow:hidden}
+}
+html.sheet-open #commands{z-index:90}
