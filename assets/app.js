@@ -228,8 +228,8 @@
   /* ---------- copy ---------- */
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest(".copy"); if (!b) return;
-    var txt = b.getAttribute("data-copy"), old = b.textContent;
-    function done(ok) { b.textContent = ok ? "✓" : "выдели"; b.classList.toggle("ok", ok); setTimeout(function () { b.textContent = old; b.classList.remove("ok"); }, 1300); }
+    var txt = b.getAttribute("data-copy");
+    function done(ok) { b.classList.remove("ok"); void b.offsetWidth; if (ok) b.classList.add("ok"); clearTimeout(b._t); b._t = setTimeout(function () { b.classList.remove("ok"); }, 1400); }
     function fallback() { try { var t = document.createElement("textarea"); t.value = txt; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select(); var ok = document.execCommand("copy"); document.body.removeChild(t); done(ok); } catch (er) { done(false); } }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { done(true); }, fallback); else fallback();
   });
@@ -265,7 +265,167 @@
     b.addEventListener("click", function () {
       var m = b.dataset.x; xg.dataset.show = m; xi.dataset.show = m;
       [].forEach.call(document.querySelectorAll(".seg button"), function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      if (window.__segThumb) window.__segThumb();
       [].forEach.call(xg.querySelectorAll(".path"), function (p) { p.style.animation = "none"; p.getBoundingClientRect(); p.style.animation = ""; });
     });
   });
+})();
+
+/* =====================================================================
+   v2.1 motion
+   ===================================================================== */
+(function () {
+  "use strict";
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
+
+  /* hero headline: letters drop in like blocks */
+  var h1 = $(".hero h1");
+  if (h1 && !reduce) {
+    h1.setAttribute("aria-label", h1.textContent.trim());
+    var i = 0;
+    (function split(node) {
+      [].slice.call(node.childNodes).forEach(function (n) {
+        if (n.nodeType === 3) {
+          var frag = document.createDocumentFragment();
+          n.textContent.split(/(\s+)/).forEach(function (word) {
+            if (!word) return;
+            if (/^\s+$/.test(word)) { frag.appendChild(document.createTextNode(word)); return; }
+            var w = document.createElement("span"); w.className = "w"; w.setAttribute("aria-hidden", "true");
+            word.split("").forEach(function (c) { var s = document.createElement("span"); s.className = "ch"; s.textContent = c; s.style.setProperty("--i", i++); w.appendChild(s); });
+            frag.appendChild(w);
+          });
+          n.parentNode.replaceChild(frag, n);
+        } else if (n.nodeType === 1 && !n.classList.contains("cur")) split(n);
+      });
+    })(h1);
+  }
+
+  /* fireflies in the night sky */
+  var sky = $("#skyfx");
+  if (sky && !reduce) {
+    for (var f = 0; f < 16; f++) {
+      var s = document.createElement("span"); s.className = "fly";
+      s.style.cssText = "--x:" + (Math.random() * 100) + "%;--y:" + (15 + Math.random() * 70) + "%;--dx:" + (Math.random() * 80 - 40) + "px;--dy:" + (Math.random() * 60 - 30) + "px;--t:" + (4 + Math.random() * 5) + "s;--dl:-" + (Math.random() * 5) + "s";
+      sky.appendChild(s);
+    }
+  }
+
+  /* count-up */
+  function countUp(el) {
+    var to = +el.dataset.count, t0 = null;
+    function st(t) { if (!t0) t0 = t; var p = Math.min(1, (t - t0) / 1400); el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(st); }
+    if (!reduce) { el.textContent = "0"; requestAnimationFrame(st); }
+  }
+  $$("[data-count]").forEach(countUp);
+
+  /* scroll reveal — only for things below the fold, so the first screen is complete at rest */
+  if (!reduce && window.IntersectionObserver) {
+    var targets = $$(".layer .head, .recipe, .steps > li, .ach, .ver, details.faq, .shot, .mini-shots figure, .iso, .route li, .hotbar, .hot-list > div, .card, .feat, .console, .seg, .xgrid, .xinfo, .meter > div, .warnbox, .bedrock h2, .bedrock .links");
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: .08 });
+    targets.forEach(function (el) {
+      if (el.getBoundingClientRect().top < innerHeight * .92) return;
+      var sib = el.parentNode ? [].indexOf.call(el.parentNode.children, el) : 0;
+      el.style.setProperty("--d", Math.min(sib, 6) * 80 + "ms");
+      el.classList.add("rv"); io.observe(el);
+    });
+  }
+
+  /* segmented control thumb */
+  var seg = $(".seg"), thumb = $(".seg-thumb");
+  function moveThumb() {
+    if (!seg || !thumb) return;
+    var b = $('.seg button[aria-pressed="true"]'); if (!b) return;
+    thumb.style.left = b.offsetLeft + "px"; thumb.style.top = b.offsetTop + "px";
+    thumb.style.width = b.offsetWidth + "px"; thumb.style.height = b.offsetHeight + "px";
+    seg.classList.add("ready");
+  }
+  window.__segThumb = moveThumb; moveThumb();
+  addEventListener("resize", moveThumb); addEventListener("load", moveThumb);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveThumb);
+
+  /* featured tiles: cursor spotlight */
+  $$(".feat").forEach(function (t) {
+    t.addEventListener("pointermove", function (e) { var r = t.getBoundingClientRect(); t.style.setProperty("--mx", (e.clientX - r.left) + "px"); t.style.setProperty("--my", (e.clientY - r.top) + "px"); });
+  });
+
+  /* primary button: slight magnetic pull */
+  if (!reduce && matchMedia("(hover:hover)").matches) {
+    $$(".btn").forEach(function (b) {
+      b.addEventListener("pointermove", function (e) { var r = b.getBoundingClientRect(); var x = (e.clientX - r.left - r.width / 2) * .18, y = (e.clientY - r.top - r.height / 2) * .3; b.style.transform = "translate(" + x + "px," + (y - 3) + "px)"; });
+      b.addEventListener("pointerleave", function () { b.style.transform = ""; });
+    });
+  }
+
+  /* hotbar: selection scrolls through the slots */
+  var hb = $(".hotbar");
+  if (hb && !reduce) {
+    var slots = $$(".slot", hb).slice(0, 6), cur = 0, hbOn = false;
+    if (window.IntersectionObserver) new IntersectionObserver(function (es) { hbOn = es[0].isIntersecting; }).observe(hb);
+    setInterval(function () { if (!hbOn) return; slots[cur].classList.remove("sel"); cur = (cur + 1) % slots.length; slots[cur].classList.add("sel"); }, 1100);
+  }
+
+  /* route line grows as you scroll past it */
+  var route = $(".route");
+  if (route && !reduce) {
+    var lis = $$("li", route);
+    var upd = function () {
+      var r = route.getBoundingClientRect(), mid = innerHeight * .6;
+      var p = Math.max(0, Math.min(1, (mid - r.top) / Math.max(1, r.height)));
+      route.style.setProperty("--p", p.toFixed(3));
+      lis.forEach(function (li) { li.classList.toggle("lit", li.getBoundingClientRect().top < mid); });
+    };
+    addEventListener("scroll", upd, { passive: true }); upd();
+  }
+
+  /* console placeholder types example queries */
+  var cq = $("#cq");
+  if (cq && !reduce) {
+    var words = ["mine", "туннель", "точка", "follow", "ферма", "стоп", "cleararea"], wi = 0, ci = 0, dir = 1, base = cq.getAttribute("placeholder");
+    setInterval(function () {
+      if (cq.value || document.activeElement === cq) { cq.setAttribute("placeholder", base); return; }
+      var w = words[wi]; ci += dir;
+      if (ci > w.length + 6) { dir = -1; ci = w.length; }
+      if (ci < 0) { dir = 1; ci = 0; wi = (wi + 1) % words.length; }
+      cq.setAttribute("placeholder", w.slice(0, Math.max(0, Math.min(ci, w.length))) + "▌");
+    }, 120);
+  }
+
+  /* hide the top bar while digging down, show it when scrolling up */
+  var tb = $(".topbar"), lastY = scrollY;
+  addEventListener("scroll", function () {
+    var y = scrollY; if (!tb) return;
+    var menuOpen = !$("#depthMenu").hidden;
+    tb.classList.toggle("hide", !menuOpen && y > lastY + 4 && y > 300);
+    if (y < lastY - 4 || y < 300) tb.classList.remove("hide");
+    lastY = y;
+  }, { passive: true });
+
+  /* click anywhere: block debris in the colour of the current layer */
+  var fx = $("#fx");
+  if (fx && fx.getContext && !reduce) {
+    var g = fx.getContext("2d"), parts = [], run = false, dpr = 1;
+    var size = function () { dpr = Math.min(devicePixelRatio || 1, 2); fx.width = innerWidth * dpr; fx.height = innerHeight * dpr; };
+    size(); addEventListener("resize", size);
+    var palettes = { surface: ["#5e9e3f", "#6aad49", "#7a5434"], install: ["#7a5434", "#86603d", "#5e4128"], clear: ["#7d8084", "#6f7276", "#ff4fd8"],
+      commands: ["#55595e", "#6f7276", "#ff4fd8"], xray: ["#4ee8f0", "#9ff6fb", "#45464b"], bedrock: ["#2a2a2d", "#3a3a3e", "#ff6a1f"] };
+    var secOf = function (y) { var id = "surface"; $$("main > section[id]").forEach(function (s) { if (s.getBoundingClientRect().top <= y) id = s.id; }); return id; };
+    var tick = function () {
+      g.clearRect(0, 0, fx.width, fx.height);
+      for (var i = parts.length - 1; i >= 0; i--) {
+        var p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += .35 * dpr; p.r += p.vr; p.l -= .022;
+        if (p.l <= 0) { parts.splice(i, 1); continue; }
+        g.save(); g.globalAlpha = Math.min(1, p.l * 1.5); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); g.restore();
+      }
+      if (parts.length) requestAnimationFrame(tick); else { run = false; g.clearRect(0, 0, fx.width, fx.height); }
+    };
+    addEventListener("pointerdown", function (e) {
+      var pal = palettes[secOf(e.clientY)] || palettes.clear;
+      for (var i = 0; i < 12; i++) parts.push({ x: e.clientX * dpr, y: e.clientY * dpr, vx: (Math.random() - .5) * 7 * dpr, vy: (-Math.random() * 6 - 1.5) * dpr, s: (4 + Math.random() * 5) * dpr, r: 0, vr: (Math.random() - .5) * .4, l: 1, c: pal[i % pal.length] });
+      if (!run) { run = true; requestAnimationFrame(tick); }
+    }, { passive: true });
+  }
 })();
